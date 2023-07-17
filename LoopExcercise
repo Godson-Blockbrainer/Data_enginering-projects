@@ -1,0 +1,157 @@
+CREATE TABLE territory (
+territory_key INT PRIMARY KEY NOT NULL, 
+region VARCHAR(10) NOT NULL, 
+subregion VARCHAR (20) NOT NULL,
+segment VARCHAR (20) NOT NULL,
+territory VARCHAR(20) NULL
+);
+
+CREATE TABLE calendar (
+  calendar_key DATETIME PRIMARY KEY NOT NULL, 
+  calendardate DATETIME NOT NULL
+);
+
+CREATE TABLE Revenue(
+  revenue_key INT PRIMARY KEY, 
+  territory_key INT NOT NULL REFERENCES territory(territory_key), 
+  calendar_key DATETIME NOT NULL REFERENCES calendar(calendar_key), 
+  revenue INT NOT NULL
+);
+
+
+/*---------------------------------------------------------------------*/
+/* INSERTING  DATA INTO THE TABLES*/
+
+INSERT INTO territory
+(territory_key, region, subregion, segment, territory)  
+VALUES
+
+(1, 'UKIR', 'UK', 'ENT', 'ENT-UK-1'),
+(2, 'UKIR', 'IE', 'MMT', 'MMT-IE-1'),
+(3, 'DACH', 'DE', 'ENT', 'ENT-DE-2'),
+(4, 'DACH', 'IT', 'MMT', 'MMT-IT-1'),
+(5, 'DACH', 'CH', 'MMT', 'MMT-CH-6'),
+(6, 'FR', 'FR', 'FCD', 'FCD-FR-1'),
+(7, 'ITALY', 'ITALY', 'MMN', 'MMN-ITALY-5'),
+(8, 'UKIR', 'UK', 'MMN', 'MMN-UK-2'),
+(9, 'UKIR', 'IE', 'FCD', 'FCD-IE-2'),
+(10, 'DACH', 'DE', 'MMT', 'MMT-DE-9'),
+(11, 'UKIR', 'UK', 'ENT', NULL),
+(12, 'UKIR', 'UK', 'MMT', 'Whitespace'),
+(13, 'UKIR', 'UK', 'ENT', 'Whitespace'),
+(14, 'DACH', 'DE', 'ENT', 'Whitespace');
+
+INSERT INTO calendar 
+VALUES 
+( '20190101', '2019-01-01 00:00:00'),
+( '20190201', '2019-02-01 00:00:00'),
+( '20190301', '2019-03-01 00:00:00'),
+( '20190401', '2019-04-01 00:00:00'),
+( '20180101', '2018-01-01 00:00:00'),
+( '20180201', '2018-02-01 00:00:00'),
+( '20180301', '2018-03-01 00:00:00'),
+( '20180401', '2018-04-01 00:00:00'),
+( '20170101', '2017-01-01 00:00:00'),
+( '20170201', '2017-02-01 00:00:00'),
+( '20170301', '2017-03-01 00:00:00'),
+( '20170401', '2017-04-01 00:00:00')
+
+
+
+INSERT INTO Revenue 
+(revenue_key, territory_key,calendar_key,revenue)
+VALUES
+( 1, 1, '20190101', 20000.00)
+( 2, 1, '20190201', 22000.00),
+( 3, 1, '20190301', 23500.00),
+( 4, 1, '20190401', 25000.00),
+( 5, 2, '20190101', 6000.00),
+( 6, 2, '20190201', 6500.00),
+( 7, 2, '20190301', 6200.00),
+( 8, 2, '20190401', 6600.00),
+( 9, 3, '20190101', 18500.00),
+( 10,3, '20190201', 19000.00),
+( 11,3, '20190301', 20000.00),
+( 12,3, '20190401', 25000.00),
+( 13,1, '20180101', 19000.00),
+(14,1,  '20180201', 19500.00)
+
+
+select *from dbo.Revenue
+select *from dbo.calendar
+select *from dbo.territory
+
+-- SQL syntax for merging the tables
+SELECT *
+FROM calendar
+JOIN revenue ON calendar.calendar_key = revenue.calendar_key
+JOIN territory ON revenue.territory_key = territory.territory_key
+
+
+Select *from dbo.calendar C
+ JOIN  dbo.Revenue R on R.calendar_key = C.calendar_key
+ JOIN  dbo.territory T on T.territory_key = R.territory_key
+
+
+ /*1---Write a query that returns unique regions in territory table.*/
+
+select distinct region from territory 
+
+/*2----Write a query that returns all the subregions in UKIR region.*/
+select subregion from territory where region = 'UKIR'
+
+/*3--Write a query that shows how many territories exist per region.
+Order the result based on the highest number of territories.*/
+
+SELECT region, COUNT(territory_key) as number_of_territories
+FROM dbo.territory
+GROUP BY region
+ORDER BY number_of_territories DESC
+
+/*4--Write a query that returns the total revenue for the current year*/
+
+SELECT SUM(R.revenue) AS total_revenue
+FROM Revenue R join calendar C on C.calendar_key = R.calendar_key
+WHERE YEAR(C.calendardate) = 2019
+
+/*5--Write a query that returns the total revenue per region.
+Only take current year year into account and show the region with the highest revenue at the top.*/
+
+SELECT T.region, SUM(R.revenue) AS total_revenue
+FROM dbo.Revenue R
+JOIN dbo.calendar C ON R.calendar_key = C.calendar_key
+JOIN dbo.territory  T ON R.territory_key = T.territory_key
+WHERE YEAR(C.calendardate) = 2019
+GROUP BY T.region
+ORDER BY total_revenue DESC
+
+/*Write a query that returns the region, subregion, segment, territory and total revenue.
+Only take current year into account. Filter the result to only show ENT segment.
+Only return total revenues greater than 85,000*/
+
+select T.region, T.subregion,T.segment,T.territory ,SUM(R.Revenue) As Total_revenue from territory T
+join revenue R on R.territory_key = T.territory_key
+JOIN dbo.calendar C ON R.calendar_key = C.calendar_key
+where YEAR(C.calendardate)= 2019 and  T.segment = 'ENT' 
+group by T.region, T.subregion,T.segment,T.territory
+HAVING SUM(R.Revenue) > 85000
+
+
+/*Write a query that calculates Month over Month growth using (sum revenue over month / sum revenue over previous mionth ) -1*/
+
+WITH monthly_revenue AS (
+  SELECT 
+    MIN(C.calendardate) AS calendar_month,  -- changed from calendar_key to calendar_month
+    SUM(R.revenue) AS revenue
+  FROM dbo.Revenue AS R
+  JOIN dbo.calendar AS C ON R.calendar_key = C.calendar_key
+  JOIN dbo.territory AS T ON R.territory_key = T.territory_key
+  WHERE YEAR(C.calendardate) = 2019 AND T.subregion = 'UK'
+  GROUP BY YEAR(C.calendardate), MONTH(C.calendardate)
+)
+SELECT 
+  calendar_month,  -- changed from calendar_key to calendar_month
+  revenue, 
+  (revenue - LAG(revenue) OVER (ORDER BY calendar_month)) / LAG(revenue) OVER (ORDER BY calendar_month) AS MoM
+FROM monthly_revenue
+ORDER BY calendar_month

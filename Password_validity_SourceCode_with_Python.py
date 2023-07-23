@@ -7,15 +7,15 @@ Created on Sat May 27 14:12:51 2023
 """
 
 def check_password_validity(password):
-    # We are going to use flags as checkboxes to remmeber
-    #the criterias needed for a valid passowrd , currently they 
-    #are set to false because we assume any password doesnt meet 
+    # We are going to use flags as checkboxes to remember
+    #the criteria needed for a valid password, currently they 
+    # is set to false because we assume any password doesn't meet 
     has_lowercase = False
     has_uppercase = False
     has_digit = False
     has_special = False
     
-    # Check length of the password 
+    # Check the length of the password 
     if len(password) < 6 or len(password) > 12:
         print("Invalid password length. Length should be between 6 and 12 characters.")
         return
